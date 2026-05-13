@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+config.json
+eteamsid_cache.json
+validate_code.png
+login_response.html
+newoa_home.html
