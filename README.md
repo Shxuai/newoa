@@ -59,6 +59,28 @@ python main.py
 3. 获取 ETEAMSID 并缓存到本地
 4. 获取待阅列表并自动处理
 
+### 流程图
+
+```mermaid
+flowchart TD
+    A[启动程序] --> B{检查 ETEAMSID 缓存}
+    B -->|有效| C[直接使用缓存]
+    B -->|无效| D{config.json 有账号密码?}
+    D -->|有| E[读取账号密码]
+    D -->|无| F[交互式输入账号密码]
+    F --> G[保存到 config.json]
+    G --> E
+    E --> H[登录 SSO 系统]
+    H --> I[OCR 自动识别验证码]
+    I -->|失败| H
+    I -->|成功| J[获取 ETEAMSID]
+    J --> K[缓存 ETEAMSID 到本地]
+    K --> L[获取待阅列表]
+    L --> M[自动处理待阅任务]
+    M --> N[完成]
+    C --> L
+```
+
 ## 验证码识别
 
 使用 [ddddocr](https://github.com/kan련/ddddocr) 自动识别验证码，支持常见的字母数字组合验证码。
