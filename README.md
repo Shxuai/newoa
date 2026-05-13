@@ -64,22 +64,58 @@ python main.py
 ```mermaid
 flowchart TD
     A[启动程序] --> B{检查 ETEAMSID 缓存}
-    B -->|有效| C[直接使用缓存]
+
+    B -->|有效| C1[使用缓存的 ETEAMSID]
+    C1 --> C2[POST /api/workflow/list/data/getPortalListData<br/>验证 ETEAMSID 是否有效]
+    C2 -->|有效| L[获取待阅列表]
+    C2 -->|无效| B
+
     B -->|无效| D{config.json 有账号密码?}
     D -->|有| E[读取账号密码]
     D -->|无| F[交互式输入账号密码]
     F --> G[保存到 config.json]
     G --> E
-    E --> H[登录 SSO 系统]
-    H --> I[OCR 自动识别验证码]
-    I -->|失败| H
-    I -->|成功| J[获取 ETEAMSID]
-    J --> K[缓存 ETEAMSID 到本地]
-    K --> L[获取待阅列表]
-    L --> M[自动处理待阅任务]
-    M --> N[完成]
-    C --> L
+
+    E --> H[GET /sso/login<br/>获取 csrf_token, RSA公钥, return_url, client_id]
+
+    H --> I[GET /validatecode/image<br/>获取验证码图片]
+    I --> J[OCR 识别验证码]
+    J -->|失败| I
+    J -->|成功| K[POST /sso/login<br/>提交: csrf_token, username, password, validateCode]
+
+    K -->|返回 cookies<br/>含 auth_token| L1[从 cookies 获取 auth_token]
+    L1 --> M[GET /sso/oauth2/authorize<br/>Cookie: auth_token<br/>返回 redirect_location]
+
+    M --> N[解析 redirect_location<br/>获取 tk, authurl, code]
+    N --> O[GET /papi/bs/iaauthlogin/login/oauth2<br/>参数: tk, authurl, code<br/>返回 cookies 含 ETEAMSID]
+
+    O --> P[提取 ETEAMSID<br/>缓存到 eteamsid_cache.json]
+    P --> L
+
+    L --> Q[POST /api/workflow/list/data/getPortalListData<br/>Cookie: ETEAMSID<br/>获取待阅列表]
+
+    Q --> R{遍历待阅项<br/>按 isremark 分类}
+
+    R -->|isremark=20| S[POST /api/workflow/core/flow/annotation<br/>Cookie: ETEAMSID<br/>参数: requestId, nodeid, isRemark=20<br/>手动已阅]
+
+    R -->|isremark=60| T[POST /api/workflow/core/flowPage/updateReqInfo<br/>Cookie: ETEAMSID<br/>参数: requestId<br/>自动已阅]
+
+    S --> U[完成]
+    T --> U
 ```
+
+### 数据传递说明
+
+| 步骤 | API 端点 | 获取数据 | 用于下一步 |
+|------|----------|----------|------------|
+| 1 | GET /sso/login | csrf_token, public_key, return_url, client_id | 登录参数 |
+| 2 | GET /validatecode/image | 验证码图片 | OCR 识别 |
+| 3 | POST /sso/login | cookies (含 auth_token) | OAuth2 授权 |
+| 4 | GET /sso/oauth2/authorize | redirect_location (含 tk, code) | 获取 ETEAMSID |
+| 5 | GET /papi/bs/iaauthlogin/login/oauth2 | cookies (含 ETEAMSID) | API 请求凭证 |
+| 6 | POST /api/workflow/list/data/getPortalListData | 待阅列表 data[] | 分类处理 |
+| 7 | POST /flow/annotation | 处理结果 | 完成手动已阅 |
+| 8 | POST /flowPage/updateReqInfo | 处理结果 | 完成自动已阅 |
 
 ## 验证码识别
 
