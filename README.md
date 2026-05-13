@@ -35,7 +35,9 @@ pip install ddddocr --proxy http://127.0.0.1:你的代理端口
 
 ## 配置
 
-编辑 `config.json`：
+首次运行时会提示输入用户名和密码，配置会自动保存到 `config.json`。
+
+也可以手动编辑 `config.json`：
 
 ```json
 {

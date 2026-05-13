@@ -251,15 +251,26 @@ def main():
     # 第三步：缓存无效时，重新登录获取 ETEAMSID
     # ============================================
     if not eteamsid:
-        # 从配置文件读取账号密码
+        base_dir = os.path.dirname(os.path.abspath(__file__))
         config_path = os.path.join(base_dir, 'config.json')
+
         with open(config_path, 'r', encoding='utf-8') as f:
             config = json.load(f)
 
         username = config.get('username', '')
         password = config.get('password', '')
 
-        # SSO 登录（需输入验证码）
+        if not username or not password:
+            print("\n首次运行配置：")
+            username = input("请输入用户名: ").strip()
+            password = input("请输入密码: ").strip()
+
+            config['username'] = username
+            config['password'] = password
+            with open(config_path, 'w', encoding='utf-8') as f:
+                json.dump(config, f, indent=4, ensure_ascii=False)
+            print("配置已保存到 config.json\n")
+
         result = login_client.login(username, password)
 
         if result.get('success'):
