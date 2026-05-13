@@ -21,6 +21,18 @@ OA待阅自动处理工具
 pip install -r requirements.txt
 ```
 
+如果需要通过代理安装（如使用 Clash、V2Ray 等）：
+
+```bash
+pip install -r requirements.txt --proxy http://127.0.0.1:7890
+```
+
+或指定代理端口：
+
+```bash
+pip install ddddocr --proxy http://127.0.0.1:你的代理端口
+```
+
 ## 配置
 
 编辑 `config.json`：
@@ -41,9 +53,15 @@ python main.py
 ## 流程说明
 
 1. 检查本地缓存的 ETEAMSID 是否有效
-2. 无效则使用账号密码登录 SSO（需输入验证码）
+2. 无效则使用账号密码登录 SSO（自动识别验证码）
 3. 获取 ETEAMSID 并缓存到本地
 4. 获取待阅列表并自动处理
+
+## 验证码识别
+
+使用 [ddddocr](https://github.com/kan련/ddddocr) 自动识别验证码，支持常见的字母数字组合验证码。
+
+如遇识别失败，可查看同目录下的 `validate_code.png` 图片人工确认。
 
 ## 依赖
 
@@ -51,3 +69,4 @@ python main.py
 - pycryptodome
 - beautifulsoup4
 - selenium
+- ddddocr

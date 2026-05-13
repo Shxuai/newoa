@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 import os
 import subprocess
 import sys
+import ddddocr
 
 
 class FZMTRLogin:
@@ -110,36 +111,36 @@ class FZMTRLogin:
         except Exception as e:
             raise Exception(f"RSA加密失败: {e}")
 
-    def get_validate_code_image(self, csrf_token):
-        timestamp = int(time.time() * 1000)
-        validate_code_url = f"{self.base_url}/validatecode/image"
-        params = {'req_id': csrf_token, 'time': timestamp}
+    def get_validate_code_image(self, csrf_token, max_retries=3):
+        ocr = ddddocr.DdddOcr(show_ad=False)
 
-        response = self.session.get(validate_code_url, params=params, headers=self.headers)
+        for attempt in range(max_retries):
+            timestamp = int(time.time() * 1000)
+            validate_code_url = f"{self.base_url}/validatecode/image"
+            params = {'req_id': csrf_token, 'time': timestamp}
 
-        if response.status_code != 200:
-            raise Exception(f"获取验证码失败: {response.status_code}")
+            response = self.session.get(validate_code_url, params=params, headers=self.headers)
 
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        file_path = os.path.join(base_dir, 'validate_code.png')
-        with open(file_path, 'wb') as f:
-            f.write(response.content)
+            if response.status_code != 200:
+                raise Exception(f"获取验证码失败: {response.status_code}")
 
-        print(f"验证码图片已保存为: {file_path}")
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            file_path = os.path.join(base_dir, 'validate_code.png')
+            with open(file_path, 'wb') as f:
+                f.write(response.content)
 
-        try:
-            if os.name == 'nt':
-                os.startfile(file_path)
-            elif sys.platform == 'darwin':
-                subprocess.run(['open', file_path], check=False)
-            else:
-                subprocess.run(['xdg-open', file_path], check=False)
-            print("已尝试自动打开图片")
-        except Exception as e:
-            print(f"自动打开图片失败: {e}")
+            with open(file_path, 'rb') as f:
+                validate_code = ocr.classification(f.read())
 
-        validate_code = input("请查看图片并输入验证码: ").strip()
-        return validate_code
+            validate_code = validate_code.strip()
+
+            if validate_code and len(validate_code) >= 4:
+                print(f"第 {attempt + 1} 次识别成功: {validate_code}")
+                return validate_code
+
+            print(f"第 {attempt + 1} 次识别失败: '{validate_code}', 重试中...")
+
+        raise Exception(f"验证码识别失败，已重试 {max_retries} 次")
 
     def login(self, username, password):
         csrf_token, public_key, return_url, client_id, domain = self.get_csrf_token_and_public_key()
