@@ -15,7 +15,14 @@ OA待阅自动处理工具
 - Python 3.8+
 - Windows/Linux/macOS
 
+## 下载
+
+```bash
+git clone https://gitee.com/Shxuai/newoa.git
+```
+
 ## 安装
+进入目录后执行
 
 ```bash
 pip install -r requirements.txt
